@@ -169,7 +169,7 @@ def indneutralize(y, X):
 
 
 if __name__ == "__main__":
-    x = np.arange(10).reshape(10,1)
+    x = np.arange(10)
     y = np.array([1, 3, 5, 9, -2, 4, 0, 1, 2, 3])
     print("rank", rank(x))
     print("delay", delay(x, 1))
