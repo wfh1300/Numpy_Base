@@ -28,7 +28,7 @@ def ts_count_not_nan_inf(x, window):
 
 def rank(x):
     #https://stackoverflow.com/questions/5284646/rank-items-in-an-array-using-python-numpy-without-sorting-array-twice
-    #将x的无穷值处理为nan，排序时会被放在数组最末尾
+    #将x的空值,-inf,inf全都变为inf，排序时会被放在数组最末尾
     x = np.nan_to_num(x, nan=np.inf, posinf=np.inf, neginf=np.inf)
     denominator = len(x) - count_inf(x)
   
@@ -203,7 +203,7 @@ def ts_stddev(x, window):
 def ts_rank(x, window):
     # 只排名了，没有除总数形成分位
     def _rank(x):
-        #将x的无穷值处理为nan，排序时会被放在数组最末尾
+
         x = np.nan_to_num(x, nan=np.inf, posinf=np.inf, neginf=np.inf)
 
         #此方式，只一次排序，对于长数组更有优势
