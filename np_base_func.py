@@ -317,6 +317,34 @@ def indneutralize(y, X):
     pred_y = X.dot(b)
     return y - pred_y
 
+
+#以下函数取自gplearn
+def protected_division(x1, x2):
+    """Closure of division (x1/x2) for zero denominator."""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.where(np.abs(x2) > 0.001, np.divide(x1, x2), 1.)
+
+def protected_sqrt(x1):
+    """Closure of square root for negative arguments."""
+    return np.sqrt(np.abs(x1))
+
+def protected_log(x1):
+    """Closure of log for zero arguments."""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.where(np.abs(x1) > 0.001, np.log(np.abs(x1)), 0.)
+
+def protected_inverse(x1):
+    """Closure of log for zero arguments."""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.where(np.abs(x1) > 0.001, 1. / x1, 0.)
+
+def sigmoid(x1):
+    """Special case of logistic function to transform to probabilities."""
+    with np.errstate(over='ignore', under='ignore'):
+        return 1 / (1 + np.exp(-x1))
+
+
+
 if __name__ == "__main__":
     x = np.array([1,2,np.nan, np.nan, np.nan, 3,4,5, np.inf, -np.inf])
     y = np.array([1, 3, 5, 9, -2, 4, 0, 1, 2, 3])
