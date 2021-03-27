@@ -71,13 +71,13 @@ def covariance(x, y):
         raise ValueError("The length of x and y must be the same")
     
     #drop掉x和y中，存在nan和inf的位置，用剩余位置求解。
-    drop_bool = np.isnan(x) | np.isinf(x) | np.isnan(y) | np.isinf(y)
-    x = x[~drop_bool]
-    y = y[~drop_bool]
+    # drop_bool = np.isnan(x) | np.isinf(x) | np.isnan(y) | np.isinf(y)
+    # x = x[~drop_bool]
+    # y = y[~drop_bool]
     #若剩余的长度不足以计算协方差，那返回空值
-    if x.shape[0] <= 1:
+    if x.shape[0] <= 2:
         return np.nan
-    
+    print(x, y)
     return np.sum((x - x.mean()) * (y - y.mean())) / (x.shape[0] - 1)
 def correlation(x, y):
     # 未使用np.corrcoef, 以提高计算速度。速度比np.corrcoef快一倍
@@ -85,11 +85,11 @@ def correlation(x, y):
         raise ValueError("The length of x and y must be the same")
     
     #drop掉x和y中，存在nan和inf的位置，用剩余位置求解。
-    drop_bool = np.isnan(x) | np.isinf(x) | np.isnan(y) | np.isinf(y)
-    x = x[~drop_bool]
-    y = y[~drop_bool]
+    # drop_bool = np.isnan(x) | np.isinf(x) | np.isnan(y) | np.isinf(y)
+    # x = x[~drop_bool]
+    # y = y[~drop_bool]
     #若剩余的长度不足以计算相关系数，那返回空值
-    if x.shape[0] <= 1:
+    if x.shape[0] <= 2:
         return np.nan
     
     x_mean = x.mean()
@@ -150,33 +150,52 @@ def scale(x, a=1):
     result = (a / denominator) * x
     return result
 
+
 def decay_linear(x, window):
     if window > len(x):
         return np.full(len(x), np.nan)
-
     prefix = np.full(window - 1, np.nan)
+
+    x = np.nan_to_num(x, nan=np.nan, posinf=np.nan, neginf=np.nan)
     x_rolling_array = np_rolling_window(x, window)
-    
     # 等差数列求和公式
-    #denominator = (window + 1) * window / 2
+    denominator = (window + 1) * window / 2
     # window各元素权重
-    weight = (np.arange(window) + 1) * 1.0
-    
-    #内包含空值处理
-    def _weight_sum(window_x, weight):
-        bool_x = np.isnan(window_x) | np.isinf(window_x)
-        #这个window全是空值或inf的时候
-        if bool_x.all():
-            return np.nan
-        
-        window_x = window_x[~bool_x]
-        weight = weight[~bool_x]
-        return window_x.dot(weight) / np.sum(weight)
-    
+    weight = (np.arange(window) + 1) * 1.0 / denominator
     result = np.zeros(x_rolling_array.shape[0])
     for i in range(x_rolling_array.shape[0]):
-        result[i] = _weight_sum(x_rolling_array[i], weight)
+        result[i] = x_rolling_array[i].dot(weight)
     return np.append(prefix, result)
+
+
+
+# def decay_linear(x, window):
+#     if window > len(x):
+#         return np.full(len(x), np.nan)
+
+#     prefix = np.full(window - 1, np.nan)
+#     x_rolling_array = np_rolling_window(x, window)
+    
+#     # 等差数列求和公式
+#     #denominator = (window + 1) * window / 2
+#     # window各元素权重
+#     weight = (np.arange(window) + 1) * 1.0
+    
+#     #内包含空值处理
+#     def _weight_sum(window_x, weight):
+#         bool_x = np.isnan(window_x) | np.isinf(window_x)
+#         #这个window全是空值或inf的时候
+#         if bool_x.all():
+#             return np.nan
+        
+#         window_x = window_x[~bool_x]
+#         weight = weight[~bool_x]
+#         return window_x.dot(weight) / np.sum(weight)
+    
+#     result = np.zeros(x_rolling_array.shape[0])
+#     for i in range(x_rolling_array.shape[0]):
+#         result[i] = _weight_sum(x_rolling_array[i], weight)
+#     return np.append(prefix, result)
 
 def signedpower(x, a):
     #将inf和-inf处理为nan
@@ -192,16 +211,16 @@ def ts_sum(x, window):
         return np.full(len(x), np.nan)
 
     #增加了一步，对含有nan值的放缩处理，比如[1, np.nan, 3]的和本来为4， 这里乘以3/2变为6，
-    scale_nan_inf = window / ts_count_not_nan_inf(x, window)
+    #scale_nan_inf = window / ts_count_not_nan_inf(x, window)
     #不直接修改x，通过copy的方式完成，目的是保留x原来的取值，否则参数x也会直接更改。
     # 空值，inf填充为0
-    x = np.nan_to_num(x, nan=0, posinf=0, neginf=0)
+    x = np.nan_to_num(x, nan=np.nan, posinf=np.nan, neginf=np.nan)
     pre_fix = np.full(window - 1, np.nan)
     
     rolling_array = np_rolling_window(x, window)
     result = np.sum(rolling_array, axis=1)
     #对求和结果进行放缩
-    result = result * scale_nan_inf
+    #result = result * scale_nan_inf
     
     return np.append(pre_fix, result)
 
@@ -211,16 +230,17 @@ def ts_sma(x, window):
     pre_fix = np.full(window - 1, np.nan)
     
     #先查找非空值个数
-    denominator = ts_count_not_nan_inf(x, window)
+    #denominator = ts_count_not_nan_inf(x, window)
     #再填充空值为0
-    x = np.nan_to_num(x, nan=0, posinf=0, neginf=0)
+    x = np.nan_to_num(x, nan=np.nan, posinf=np.nan, neginf=np.nan)
     rolling_array = np_rolling_window(x, window)
     
     #result = np.mean(rolling_array, axis=1)
-    numerator = np.sum(rolling_array, axis=1)
+    #numerator = np.sum(rolling_array, axis=1)
 
     #denominator = 0时，已经处理为np.nan，这里无需处理了。
-    result = numerator / denominator
+    #result = numerator / denominator
+    result = np.mean(rolling_array, axis=1)
     
     return np.append(pre_fix, result)
 
@@ -270,19 +290,19 @@ def ts_product(x, window):
 
 
     #对于有空值的地方，开方再取幂
-    exp_nan_inf = window / ts_count_not_nan_inf(x, window)
+    #exp_nan_inf = window / ts_count_not_nan_inf(x, window)
     
     #空值，填充为1
-    x = np.nan_to_num(x, nan=1, posinf=1, neginf=1)
+    x = np.nan_to_num(x, nan=np.nan, posinf=np.nan, neginf=np.nan)
     pre_fix = np.full(window - 1, np.nan)
     
     x_rolling_array = np_rolling_window(x, window)
     result = np.prod(x_rolling_array, axis=1)
 
     #指数放缩, 有一个奇怪的现象就是1^nan = 1
-    result = np.sign(result) * (np.abs(result)**exp_nan_inf)
+    #result = np.sign(result) * (np.abs(result)**exp_nan_inf)
     # 当window内均为nan时，处理为nan
-    result[np.isnan(exp_nan_inf)] = np.nan
+    #result[np.isnan(exp_nan_inf)] = np.nan
     
     return np.append(pre_fix, result)
 
@@ -330,7 +350,8 @@ def ts_argmax(x, window):
     #找到window中全为-inf的情况，填充为nan
     result = result.astype(float)
     result[np.isinf(x_rolling_array).all(axis=1)] = np.nan
-    
+    result += 1
+
     return np.append(prefix, result)
 
 def ts_argmin(x, window):
@@ -346,7 +367,8 @@ def ts_argmin(x, window):
     #找到window中全为-inf的情况，填充为nan
     result = result.astype(float)
     result[np.isinf(x_rolling_array).all(axis=1)] = np.nan
-    
+    result += 1
+
     return np.append(prefix, result)
 
 
