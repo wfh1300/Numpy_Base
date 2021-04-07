@@ -1,10 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-"""
-@Date   ：2021/4/6 10:24
-@Author ：wfh1300
-"""
-
 import cupy as cp
 
 
@@ -45,11 +38,11 @@ def rank(x):
 
 def delay(x, period):
     # window是>
-    if cp.abs(period) >= len(x):
+    if abs(period) >= len(x):
         return cp.full(len(x), cp.nan)
 
     #period 和 window的区别，这里不再减1
-    prefix = cp.full(cp.abs(period), cp.nan)
+    prefix = cp.full(abs(period), cp.nan)
     # 只有float才能加cp.nan, 否则int就会变成-2147483648
     result = cp.roll(x, period).astype(float)
     if period >= 0:
@@ -59,7 +52,7 @@ def delay(x, period):
     return result
 
 def delta(x, period):
-    if cp.abs(period) >= len(x):
+    if abs(period) >= len(x):
         return cp.full(len(x), cp.nan)
 
     return x - delay(x, period)
@@ -94,7 +87,7 @@ def correlation(x, y):
     numerator = cp.sum((x - x_mean) * (y - y_mean))
     denominator = cp.sqrt(cp.sum((x - x_mean) ** 2) * cp.sum((y - y_mean) ** 2))
     # 增加除0的处理
-    if cp.abs(denominator) < 0.000001:
+    if abs(denominator) < 0.000001:
         return cp.nan
     return numerator / denominator
 
@@ -136,10 +129,10 @@ def scale(x, a=1):
     bool_x = cp.isnan(x) | cp.isinf(x)
 
     # 变为原来的 a / sum 倍
-    #
+
     denominator = cp.sum(cp.abs(x[~bool_x]))
     #如果和为0的处理
-    if cp.abs(denominator) < 0.000001:
+    if denominator < 0.000001:
         return cp.full(len(x), cp.nan)
     x[bool_x] = cp.nan
 
@@ -370,8 +363,9 @@ def indneutralize(y, X):
 #以下函数取自gplearn
 def protected_division(x1, x2):
     """Closure of division (x1/x2) for zero denominator."""
-    with cp.errstate(divide='ignore', invalid='ignore'):
-        return cp.where(cp.abs(x2) > 0.001, cp.divide(x1, x2), 1.)
+    #AttributeError: module 'cupy' has no attribute 'errstate'
+    #with cp.errstate(divide='ignore', invalid='ignore'):
+    return cp.where(cp.abs(x2) > 0.001, cp.divide(x1, x2), cp.nan)
 
 
 def protected_sqrt(x1):
@@ -380,24 +374,15 @@ def protected_sqrt(x1):
 
 def protected_log(x1):
     """Closure of log for zero arguments."""
-    with cp.errstate(divide='ignore', invalid='ignore'):
-        return cp.where(cp.abs(x1) > 0.001, cp.log(cp.abs(x1)), 0.)
+    #with cp.errstate(divide='ignore', invalid='ignore'):
+    return cp.where(cp.abs(x1) > 0.001, cp.log(cp.abs(x1)), cp.nan)
 
 def protected_inverse(x1):
     """Closure of log for zero arguments."""
-    with cp.errstate(divide='ignore', invalid='ignore'):
-        return cp.where(cp.abs(x1) > 0.001, 1. / x1, 0.)
+    #with cp.errstate(divide='ignore', invalid='ignore'):
+    return cp.where(cp.abs(x1) > 0.001, 1. / x1, cp.nan)
 
 def sigmoid(x1):
     """Special case of logistic function to transform to probabilities."""
-    with cp.errstate(over='ignore', under='ignore'):
-        return 1 / (1 + cp.exp(-x1))
-
-
-
-
-
-
-
-
-
+    #with cp.errstate(over='ignore', under='ignore'):
+    return 1 / (1 + cp.exp(-x1))
